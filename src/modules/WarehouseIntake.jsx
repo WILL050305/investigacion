@@ -115,8 +115,8 @@ const WarehouseIntake = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Recepción de Medicamentos</h1>
         <span className="text-sm text-gray-600">Usuario: {user?.name}</span>
       </div>
@@ -133,9 +133,9 @@ const WarehouseIntake = () => {
 
       <Scanner onScan={handleScanLot} label="Escanear Código de Lote" />
 
-      <Card title="Información del Ingreso">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Card title="Información del Ingreso" padding="lg">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Orden de Compra *
@@ -225,13 +225,14 @@ const WarehouseIntake = () => {
             />
           </div>
 
-          <div className="flex gap-4 pt-4">
-            <Button type="button" onClick={validateItem} variant="secondary">
+          <div className="flex gap-4 pt-6 border-t border-gray-200 mt-8">
+            <Button type="button" onClick={validateItem} variant="secondary" size="lg">
               Validar Datos
             </Button>
             <Button 
               type="submit" 
               variant="success"
+              size="lg"
               disabled={!validationResult?.isValid}
             >
               Registrar Ingreso
@@ -240,7 +241,7 @@ const WarehouseIntake = () => {
         </form>
 
         {validationResult && (
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+          <div className="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
             <h4 className="font-semibold mb-2">Resultado de Validación:</h4>
             {validationResult.isValid ? (
               <p className="text-green-600">✓ Todos los datos son válidos</p>

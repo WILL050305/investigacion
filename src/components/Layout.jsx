@@ -71,7 +71,7 @@ const Layout = ({ children }) => {
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="flex items-center justify-between px-6 py-4">
+        <div className="w-full flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -119,13 +119,13 @@ const Layout = ({ children }) => {
         </div>
       </header>
 
-      <div className="flex">
+      <div className="flex min-h-[calc(100vh-73px)]">
         {/* Sidebar */}
         <aside
           className={`
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
             fixed lg:sticky lg:translate-x-0
-            top-0 left-0 h-screen w-64 bg-white shadow-lg
+            top-0 left-0 h-[calc(100vh-73px)] w-64 bg-white shadow-lg
             transition-transform duration-300 ease-in-out
             z-20 lg:z-0
             mt-[73px]
@@ -166,10 +166,8 @@ const Layout = ({ children }) => {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
-            {children}
-          </div>
+        <main className="flex-1 py-6 lg:py-8 min-h-[calc(100vh-73px)] overflow-x-hidden">
+          {children}
         </main>
       </div>
 
