@@ -36,51 +36,39 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
   };
 
   const startCamera = async () => {
+    setError('');
     setShowCamera(true);
     setIsScanning(true);
-    setError('');
+
+    // Esperar a que el video esté en el DOM
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     try {
-      // Primero solicitar permisos explícitamente
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
-      
-      // Detener el stream temporal de permisos
-      stream.getTracks().forEach(track => track.stop());
-
       const reader = new BrowserMultiFormatReader();
       readerRef.current = reader;
 
-      // Lista todos los dispositivos de video disponibles
-      const devices = await reader.listVideoInputDevices();
+      console.log('Iniciando cámara...');
       
-      if (devices.length === 0) {
-        setError('No se encontró ninguna cámara en este dispositivo');
-        setIsScanning(false);
-        setShowCamera(false);
-        return;
-      }
-
-      // Priorizar cámara trasera en móviles
-      const device = devices.length > 1
-        ? devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear')) || devices[0]
-        : devices[0];
-
-      // Iniciar escaneo continuo
+      // Intentar iniciar directamente con undefined para usar la cámara por defecto
       await reader.decodeFromVideoDevice(
-        device.deviceId,
+        undefined, // undefined usa la cámara por defecto
         videoRef.current,
         (result, err) => {
           if (result) {
+            console.log('Código detectado:', result.getText());
             const scannedCode = result.getText();
-            setCode(scannedCode); // Pone el código en el campo de entrada
-            stopCamera(); // Cierra la cámara
-            // No llamamos onScan aquí, dejamos que el usuario presione "Registrar"
+            setCode(scannedCode);
+            stopCamera();
           }
-          // Ignorar errores de lectura continua
+          if (err && err.name !== 'NotFoundException') {
+            console.error('Error en escaneo:', err);
+          }
         }
       );
+      
+      console.log('Cámara iniciada exitosamente');
+      setIsScanning(false); // La cámara está activa pero no "escaneando"
+      
     } catch (err) {
       console.error('Error al acceder a la cámara:', err);
       
@@ -97,7 +85,7 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
       } else if (err.name === 'SecurityError') {
         errorMessage += 'Por seguridad, la cámara solo funciona en conexiones HTTPS.';
       } else {
-        errorMessage += 'Verifica los permisos y que otra app no esté usando la cámara.';
+        errorMessage += err.message || 'Verifica los permisos y que otra app no esté usando la cámara.';
       }
       
       setError(errorMessage);
@@ -155,16 +143,25 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
 
         {/* Visor de cámara */}
         {showCamera && (
-          <div className="relative bg-black rounded-lg overflow-hidden">
+          <div className="relative bg-black rounded-lg overflow-hidden min-h-[300px] flex items-center justify-center">
             <video 
               ref={videoRef} 
               className="w-full h-auto max-h-96"
               autoPlay
               playsInline
+              muted
             />
+            {isScanning && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                <div className="text-white text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-3"></div>
+                  <p className="text-sm">Iniciando cámara...</p>
+                </div>
+              </div>
+            )}
             <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent p-4">
               <p className="text-white text-center text-sm">
-                Apunta la cámara al código de barras
+                {isScanning ? 'Cargando cámara...' : 'Apunta la cámara al código de barras'}
               </p>
             </div>
           </div>
