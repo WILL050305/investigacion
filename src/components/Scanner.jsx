@@ -41,32 +41,36 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
     setIsScanning(true);
 
     // Esperar a que el video esté en el DOM
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 200));
 
     try {
+      console.log('1. Verificando videoRef:', videoRef.current);
+      
+      if (!videoRef.current) {
+        throw new Error('El elemento de video no está disponible');
+      }
+
       const reader = new BrowserMultiFormatReader();
       readerRef.current = reader;
 
-      console.log('Iniciando cámara...');
+      console.log('2. Iniciando cámara con ZXing...');
       
       // Intentar iniciar directamente con undefined para usar la cámara por defecto
-      await reader.decodeFromVideoDevice(
+      const controls = await reader.decodeFromVideoDevice(
         undefined, // undefined usa la cámara por defecto
         videoRef.current,
         (result, err) => {
           if (result) {
-            console.log('Código detectado:', result.getText());
+            console.log('✅ Código detectado:', result.getText());
             const scannedCode = result.getText();
             setCode(scannedCode);
             stopCamera();
           }
-          if (err && err.name !== 'NotFoundException') {
-            console.error('Error en escaneo:', err);
-          }
+          // Ignorar errores de NotFoundException (es normal mientras no detecta nada)
         }
       );
       
-      console.log('Cámara iniciada exitosamente');
+      console.log('3. Cámara iniciada exitosamente, controles:', controls);
       setIsScanning(false); // La cámara está activa pero no "escaneando"
       
     } catch (err) {
@@ -143,26 +147,31 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
 
         {/* Visor de cámara */}
         {showCamera && (
-          <div className="relative bg-black rounded-lg overflow-hidden min-h-[300px] flex items-center justify-center">
-            <video 
-              ref={videoRef} 
-              className="w-full h-auto max-h-96"
-              autoPlay
-              playsInline
-              muted
-            />
+          <div className="relative bg-gray-900 rounded-lg overflow-hidden" style={{ minHeight: '400px' }}>
             {isScanning && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+              <div className="absolute inset-0 flex items-center justify-center z-10">
                 <div className="text-white text-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-3"></div>
                   <p className="text-sm">Iniciando cámara...</p>
                 </div>
               </div>
             )}
-            <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent p-4">
-              <p className="text-white text-center text-sm">
-                {isScanning ? 'Cargando cámara...' : 'Apunta la cámara al código de barras'}
+            <video 
+              ref={videoRef} 
+              style={{ width: '100%', height: '400px', objectFit: 'cover' }}
+              autoPlay
+              playsInline
+              muted
+            />
+            <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent p-4 z-10">
+              <p className="text-white text-center text-sm font-medium">
+                {isScanning ? 'Cargando cámara...' : '📷 Apunta al código de barras'}
               </p>
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4 z-10">
+              <div className="flex justify-center">
+                <div className="border-2 border-white/50 rounded-lg" style={{ width: '250px', height: '100px' }}></div>
+              </div>
             </div>
           </div>
         )}
