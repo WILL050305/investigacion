@@ -36,8 +36,9 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
   };
 
   const loadExampleCode = () => {
-    // Generar código de ejemplo simulado
-    const exampleCode = `7501234567890`; // Código de barras EAN-13 de ejemplo
+    // Generar código de ejemplo en formato LOT-XXXXXXXX
+    const randomNumber = Math.floor(10000000 + Math.random() * 90000000);
+    const exampleCode = `LOT-${randomNumber}`;
     setCode(exampleCode);
     console.log('📦 Código de ejemplo cargado:', exampleCode);
   };
