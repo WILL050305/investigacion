@@ -35,6 +35,13 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
     }
   };
 
+  const loadExampleCode = () => {
+    // Generar código de ejemplo simulado
+    const exampleCode = `7501234567890`; // Código de barras EAN-13 de ejemplo
+    setCode(exampleCode);
+    console.log('📦 Código de ejemplo cargado:', exampleCode);
+  };
+
   const startCamera = async () => {
     setError('');
     setShowCamera(true);
@@ -157,7 +164,7 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
               disabled={isScanning}
             />
           </div>
-          <div className="flex gap-3 mb-4 w-full sm:w-auto">
+          <div className="flex gap-3 mb-4 w-full sm:w-auto flex-wrap">
             <Button 
               onClick={handleScan} 
               disabled={!code.trim() || isScanning}
@@ -175,6 +182,15 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
               className="flex-1 sm:flex-none"
             >
               {showCamera ? 'Cerrar' : 'Escanear'}
+            </Button>
+            <Button 
+              onClick={loadExampleCode}
+              variant="outline"
+              disabled={isScanning}
+              size="md"
+              className="flex-1 sm:flex-none"
+            >
+              Ejemplo
             </Button>
           </div>
         </div>
