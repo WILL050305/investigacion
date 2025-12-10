@@ -41,6 +41,14 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
     setError('');
 
     try {
+      // Primero solicitar permisos explícitamente
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      
+      // Detener el stream temporal de permisos
+      stream.getTracks().forEach(track => track.stop());
+
       const reader = new BrowserMultiFormatReader();
       readerRef.current = reader;
 
@@ -48,7 +56,7 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
       const devices = await reader.listVideoInputDevices();
       
       if (devices.length === 0) {
-        setError('No se encontró ninguna cámara');
+        setError('No se encontró ninguna cámara en este dispositivo');
         setIsScanning(false);
         setShowCamera(false);
         return;
@@ -56,7 +64,7 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
 
       // Priorizar cámara trasera en móviles
       const device = devices.length > 1
-        ? devices.find(d => d.label.toLowerCase().includes('back')) || devices[0]
+        ? devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear')) || devices[0]
         : devices[0];
 
       // Iniciar escaneo continuo
@@ -75,7 +83,24 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
       );
     } catch (err) {
       console.error('Error al acceder a la cámara:', err);
-      setError('Error al acceder a la cámara. Verifica los permisos.');
+      
+      let errorMessage = 'Error al acceder a la cámara. ';
+      
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errorMessage += 'Debes permitir el acceso a la cámara en tu navegador.';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        errorMessage += 'No se encontró ninguna cámara en este dispositivo.';
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        errorMessage += 'La cámara está siendo usada por otra aplicación.';
+      } else if (err.name === 'NotSupportedError') {
+        errorMessage += 'Este navegador no soporta acceso a la cámara. Usa Chrome, Firefox o Safari.';
+      } else if (err.name === 'SecurityError') {
+        errorMessage += 'Por seguridad, la cámara solo funciona en conexiones HTTPS.';
+      } else {
+        errorMessage += 'Verifica los permisos y que otra app no esté usando la cámara.';
+      }
+      
+      setError(errorMessage);
       setIsScanning(false);
       setShowCamera(false);
     }
@@ -147,8 +172,23 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
 
         {/* Mensajes de error */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-            <p className="text-red-800 text-sm">{error}</p>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800 text-sm font-medium mb-2">{error}</p>
+            <div className="text-red-700 text-xs space-y-1">
+              <p>📱 <strong>En móvil:</strong> Toca "Permitir" cuando aparezca el mensaje de permisos</p>
+              <p>💻 <strong>En PC:</strong> Haz clic en el ícono de cámara 🎥 en la barra de direcciones</p>
+              <p>🔒 <strong>HTTPS requerido:</strong> La cámara solo funciona en sitios seguros (https://)</p>
+            </div>
+          </div>
+        )}
+
+        {/* Información sobre HTTPS */}
+        {!showCamera && !error && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-blue-800 text-xs">
+              💡 <strong>Nota:</strong> El escáner de cámara requiere HTTPS (conexión segura). 
+              En desarrollo local (localhost) funciona sin problemas. En Vercel se usa HTTPS automáticamente.
+            </p>
           </div>
         )}
       </div>
