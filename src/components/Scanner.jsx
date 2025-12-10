@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Scan, Camera, X } from 'lucide-react';
+import { Scan, Camera, X, Upload } from 'lucide-react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import Input from './Input';
 import Button from './Button';
@@ -12,6 +12,7 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
   const [error, setError] = useState('');
   const videoRef = useRef(null);
   const readerRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -41,6 +42,54 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
     const exampleCode = `LOT-${randomNumber}`;
     setCode(exampleCode);
     console.log('📦 Código de ejemplo cargado:', exampleCode);
+  };
+
+  const handleImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      console.log('📸 Procesando imagen:', file.name);
+      setIsScanning(true);
+      setError('');
+
+      const reader = new BrowserMultiFormatReader();
+      
+      // Crear URL temporal de la imagen
+      const imageUrl = URL.createObjectURL(file);
+      
+      // Crear elemento de imagen
+      const img = new Image();
+      img.src = imageUrl;
+      
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      console.log('🔍 Buscando código de barras en la imagen...');
+      
+      // Intentar decodificar desde la imagen
+      const result = await reader.decodeFromImageUrl(imageUrl);
+      
+      if (result) {
+        const scannedCode = result.getText();
+        console.log('✅ Código encontrado:', scannedCode);
+        setCode(scannedCode);
+      }
+      
+      // Limpiar
+      URL.revokeObjectURL(imageUrl);
+      setIsScanning(false);
+      
+    } catch (err) {
+      console.error('❌ Error al leer imagen:', err);
+      setError('No se encontró ningún código de barras en la imagen. Intenta con otra imagen más clara.');
+      setIsScanning(false);
+    }
+    
+    // Limpiar el input para permitir seleccionar la misma imagen otra vez
+    event.target.value = '';
   };
 
   const startCamera = async () => {
@@ -185,6 +234,16 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
               {showCamera ? 'Cerrar' : 'Escanear'}
             </Button>
             <Button 
+              onClick={() => fileInputRef.current?.click()}
+              variant="outline"
+              icon={Upload}
+              disabled={isScanning}
+              size="md"
+              className="flex-1 sm:flex-none"
+            >
+              Imagen
+            </Button>
+            <Button 
               onClick={loadExampleCode}
               variant="outline"
               disabled={isScanning}
@@ -195,6 +254,15 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
             </Button>
           </div>
         </div>
+
+        {/* Input oculto para subir imágenes */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageUpload}
+          className="hidden"
+        />
 
         {/* Visor de cámara */}
         {showCamera && (
