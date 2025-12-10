@@ -40,49 +40,41 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
     setShowCamera(true);
     setIsScanning(true);
 
-    // Esperar a que el video esté en el DOM
-    await new Promise(resolve => setTimeout(resolve, 200));
-
     try {
-      console.log('1. Verificando videoRef:', videoRef.current);
+      console.log('1. Solicitando acceso a la cámara...');
+      
+      // Primero obtener acceso directo con getUserMedia
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          facingMode: { ideal: 'environment' }, // Prioriza cámara trasera
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      });
+      
+      console.log('2. Acceso concedido, iniciando video...');
+      
+      // Esperar a que el video esté en el DOM
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       if (!videoRef.current) {
+        stream.getTracks().forEach(track => track.stop());
         throw new Error('El elemento de video no está disponible');
       }
 
+      // Asignar stream al video
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+      
+      console.log('3. Video iniciado, configurando escáner...');
+      
+      // Ahora iniciar el escáner ZXing
       const reader = new BrowserMultiFormatReader();
       readerRef.current = reader;
 
-      console.log('2. Listando cámaras disponibles...');
-      
-      // Listar todas las cámaras disponibles
-      const devices = await reader.listVideoInputDevices();
-      console.log('Cámaras encontradas:', devices.length, devices);
-      
-      if (devices.length === 0) {
-        throw new Error('No se encontró ninguna cámara en este dispositivo');
-      }
-
-      // Buscar cámara trasera (ideal para escanear)
-      let selectedDevice = devices[0];
-      const backCam = devices.find(d => 
-        d.label.toLowerCase().includes("back") ||
-        d.label.toLowerCase().includes("rear") ||
-        d.label.toLowerCase().includes("environment")
-      );
-      
-      if (backCam) {
-        selectedDevice = backCam;
-        console.log('📷 Usando cámara trasera:', selectedDevice.label);
-      } else {
-        console.log('📷 Usando cámara:', selectedDevice.label);
-      }
-
-      console.log('3. Iniciando cámara con ZXing...');
-      
-      // Iniciar con la cámara seleccionada
-      const controls = await reader.decodeFromVideoDevice(
-        selectedDevice.deviceId,
+      // Iniciar decodificación desde el stream
+      reader.decodeFromStream(
+        stream,
         videoRef.current,
         (result, err) => {
           if (result) {
@@ -90,23 +82,19 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
             const scannedCode = result.getText();
             setCode(scannedCode);
             
-            // Pequeña pausa antes de cerrar para evitar cortes abruptos
+            // Pequeña pausa antes de cerrar
             setTimeout(() => {
               stopCamera();
             }, 300);
           }
-          // Ignorar errores de NotFoundException (es normal mientras no detecta nada)
         }
       );
       
-      console.log('4. Cámara iniciada exitosamente, controles:', controls);
-      
-      // Esperar un poco más en móviles para que la cámara cargue completamente
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setIsScanning(false); // La cámara está activa y lista
+      console.log('4. Escáner activado correctamente');
+      setIsScanning(false);
       
     } catch (err) {
-      console.error('Error al acceder a la cámara:', err);
+      console.error('❌ Error completo:', err);
       
       let errorMessage = 'Error al acceder a la cámara. ';
       
@@ -131,10 +119,24 @@ const Scanner = ({ onScan, label = 'Escanear Código', placeholder = 'Código de
   };
 
   const stopCamera = () => {
+    console.log('Deteniendo cámara...');
+    
+    // Detener el stream de video
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject;
+      stream.getTracks().forEach(track => {
+        track.stop();
+        console.log('Track detenido:', track.kind);
+      });
+      videoRef.current.srcObject = null;
+    }
+    
+    // Detener el lector ZXing
     if (readerRef.current) {
       readerRef.current.reset();
       readerRef.current = null;
     }
+    
     setIsScanning(false);
     setShowCamera(false);
     setError('');
